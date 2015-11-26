@@ -1,0 +1,12 @@
+*.pyc
+*.rdb
+*.xls
+*.xlsx
+*.csv
+*.zip
+.DS_Store
+config.py
+archive/
+tests/
+csv/
+download/
