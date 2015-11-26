@@ -30,7 +30,8 @@ def file_len(fname):
 
 
 # input model, X training data, y training data, X test data, and ids
-# returns y_test and creates output file with predictions
+# returns y_test and creates output.csv file with predictions
+# e.g. create_output(knn, X_train, y_train, X_test, ids)
 def create_output(model, X_train, y_train, X_test, ids):
 	print ('Generating predictions for output file')
 	predictions = model.fit(X_train, y_train).predict(X_test)
@@ -70,7 +71,31 @@ def dataprocess(df):
 
 
 	# new variables
-	# df['Age*BMI'] = df.Ins_Age * df.BMI
+	df['Age+BMI'] = df.Ins_Age + df.BMI
+	df['Wt+BMI'] = df.Wt + df.BMI
+	df['Ht-BMI'] = df.Ht - df.BMI
+
+	# group weight into quintiles
+	weight_quantiles = df.Wt.quantile([0,.2,.4,.6,.8,1]).values
+	for i in range(0, 5):
+		df['Wt_' + str(i+1)] = (train_df['Wt'] >= weight_quantiles[i]) & (train_df['Wt'] <= weight_quantiles[i+1])
+		df['Wt_' + str(i+1)] = df['Wt_' + str(i+1)].astype(int)
+	# double counting some values (quantile cannot be greater than 1) need to fix!
+
+
+	# sum of Family_Hist_2 - 5
+	df["Sum_Family_Hist"] = 0
+	for i in range(2,6):
+		df["Sum_Family_Hist"] = df["Sum_Family_Hist"] + df["Family_Hist_" + str(i)]
+
+
+	# sum of Medical_Keyword_1 - 48
+	df["Sum_Medical_Keyword"] = 0
+	for i in range(1,49):
+		df["Sum_Medical_Keyword"] = df["Sum_Medical_Keyword"] + df["Medical_Keyword_" + str(i)]
+
+	# group 8-16 together
+	df.Sum_Medical_Keyword[df.Sum_Medical_Keyword >= 8] = 8
 
 	# create dummy variable (truth value for Product_Info_2)
 	# Product_Info_2_dummies = pd.get_dummies(df['Product_Info_2'], prefix='Product_Info_2')
@@ -88,6 +113,7 @@ def dataprocess(df):
 
 
 
+
 train_df = pd.read_csv('train.csv', header=0)
 train_data = dataprocess(train_df)
 
@@ -100,19 +126,6 @@ n_samples = len(train_data)
 train_cols = train_data.columns
 train_cols = train_cols.drop(['Response'])
 
-
-# train data has 75% of records
-# X_train = train_data[train_cols].values[:.75 * n_samples]
-# y_train = train_data['Response'].values[:.75 * n_samples]
-# test data has 25% of records
-# X_test = train_data[train_cols].values[.75 * n_samples:]
-# y_test = train_data['Response'].values[.75 * n_samples:]
-
-# split training data for cross validation (same as above)
-# X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-# 	train_data[train_cols].values, train_data['Response'].values,
-# 	test_size=0.25, random_state=0)
-
 # classifier fit (X,y).predict(t)
 # X = train_data[train_cols].values (data in array format)
 # y = train_data['Response'].values (target in array format)
@@ -121,31 +134,27 @@ train_cols = train_cols.drop(['Response'])
 print ('Training knn')
 knn = neighbors.KNeighborsClassifier()
 knn_scores = cross_validation.cross_val_score(
-	knn, train_data[train_cols].values, train_data['Response'].values, cv=5)
-# knn_score = knn.fit(X_train, y_train).score(X_test, y_test)
+	knn, train_data[train_cols].values, train_data['Response'].values, cv=3)
 
 print ('Training logistic')
 log_reg = linear_model.LogisticRegression()
 log_reg_scores = cross_validation.cross_val_score(
-	log_reg, train_data[train_cols].values, train_data['Response'].values, cv=5)
-# logistic_score = log_reg.fit(X_train, y_train).score(X_test, y_test)
+	log_reg, train_data[train_cols].values, train_data['Response'].values, cv=3)
 
 print ('Training svc' + '\n')
 svc = OneVsRestClassifier(LinearSVC(random_state=0))
 svc_scores = cross_validation.cross_val_score(
-	svc, train_data[train_cols].values, train_data['Response'].values, cv=5)
-# svc_score = svc.fit(X_train, y_train).score(X_test, y_test)
-
-print ('KNN score: ' + str(knn_scores))
-print ('LogisticRegression score: ' + str(log_reg_scores))
-print ('SVC score: ' + str(svc_scores) + '\n')
+	svc, train_data[train_cols].values, train_data['Response'].values, cv=3)
 
 
-# reset training and test values
+print ("KNN score: %0.2f (+/- %0.2f)" % (knn_scores.mean(), knn_scores.std() * 2))
+print ("Logistic Regression score: %0.2f (+/- %0.2f)" % (log_reg_scores.mean(), log_reg_scores.std() * 2))
+print ("SVC score: %0.2f (+/- %0.2f) \n" % (svc_scores.mean(), svc_scores.std() * 2))
+
+# set training and test values
 X_train = train_data[train_cols].values
 y_train = train_data['Response'].values
 X_test = test_data.values
-# y_test = []
 
 
 
