@@ -83,16 +83,11 @@ def dataprocess(df):
 	# double counting some values (quantile cannot be greater than 1) need to fix!
 
 
-	# sum of Family_Hist_2 - 5
-	df["Sum_Family_Hist"] = 0
-	for i in range(2,6):
-		df["Sum_Family_Hist"] = df["Sum_Family_Hist"] + df["Family_Hist_" + str(i)]
-
-
 	# sum of Medical_Keyword_1 - 48
 	df["Sum_Medical_Keyword"] = 0
 	for i in range(1,49):
 		df["Sum_Medical_Keyword"] = df["Sum_Medical_Keyword"] + df["Medical_Keyword_" + str(i)]
+
 
 	# group 8-16 together
 	df.Sum_Medical_Keyword[df.Sum_Medical_Keyword >= 8] = 8
@@ -114,10 +109,10 @@ def dataprocess(df):
 
 
 
-train_df = pd.read_csv('train.csv', header=0)
+train_df = pd.read_csv('csv/train.csv', header=0)
 train_data = dataprocess(train_df)
 
-test_df = pd.read_csv('test.csv', header=0)
+test_df = pd.read_csv('csv/test.csv', header=0)
 test_data = dataprocess(test_df)
 ids = test_df.Id.values # for zipping output
 
